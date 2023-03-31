@@ -1,53 +1,50 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <title>Веб форма для ввода заказа ЗИП</title>
-  <link href="style.css" type="text/css" rel="stylesheet">
+  <title>Scan QR Code</title>
 </head>
-
 <body>
-  <h1>Веб форма для ввода заказа ЗИП</h1>
+  <video id="video" width="300" height="200" autoplay></video>
+  <canvas id="canvas" width="300" height="200"></canvas>
+  <button id="scanBtn">Scan QR Code</button>
 
-  <form action="/submit" method="post">
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const scanBtn = document.getElementById('scanBtn');
+    const ctx = canvas.getContext('2d');
+    let scanned = false;
 
-    <label for="order">Заказ ЗИП:</label><br>
-    <input type="text" id="order" name="order"><br>
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function (stream) {
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(function (err) {
+        console.log("An error occurred: " + err);
+      });
 
-    <label for="list">Перечень и количество ЗИП:</label><br>
-    <textarea id="list" name="list"></textarea><br>
+    scanBtn.onclick = function() {
+      if (scanned) return;
+      scanned = true;
 
-    <label for="delivery">Способ доставки:</label><br>
-    <select id="delivery" name="delivery">
-      <option value="Нова пошта">Нова пошта</option>
-      <option value="Укрпочта">Укрпочта</option>
-      <option value="Самовывоз">Самовывоз</option>
-    </select><br>
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-    <label for="region">Область:</label><br>
-    <input type="text" id="region" name="region"><br>
-
-    <label for="city">Город:</label><br>
-    <input type="text" id="city" name="city"><br>
-
-    <label for="number">Номер отделения:</label><br>
-    <input type="text" id="number" name="number"><br>
-
-    <label for="address">Адрес отделения:</label><br>
-    <input type="text" id="address" name="address"><br>
-
-    <label for="name">ФИО получателя:</label><br>
-    <input type="text" id="name" name="name"><br>
-
-    <label for="phone">Телефон получателя:</label><br>
-    <input type="text" id="phone" name="phone"><br>
-
-    <label for="ttn">№ ТТН:</label><br>
-    <input type="text" id="ttn" name="ttn"><br>
-
-    <input type="submit" value="Отправить">
-  </form>
-
+      if (code) {
+        // Возвращаем данные через Telegram Web App
+        telegramWebApp.request({
+          method: 'sendMessage',
+          params: {
+            text: code.data,
+            chat_id: '@your_bot_username',
+          }
+        });
+      }
+    };
+  </script>
 </body>
-
 </html>
